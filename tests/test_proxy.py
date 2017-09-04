@@ -29,3 +29,12 @@ class TestProxy(TestCase):
     def test_simple_html_file(self):
         response = requests.get(SIMPLE_HTML_FILE, proxies=proxy.get_proxies())
         self.assertEqual(SIMPLE_HTML_CONTENT, response.content)
+
+    def test_redirect(self):
+        response = requests.get('http://aftonbladet.se',
+                                proxies=proxy.get_proxies())
+        self.assertEqual(200, response.status_code)
+
+    def test_large_site(self):
+        response = requests.get('http://www.aftonbladet.se', proxies=proxy.get_proxies())
+        self.assertEqual(200, response.status_code)
