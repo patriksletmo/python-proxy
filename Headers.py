@@ -1,6 +1,6 @@
 class Headers:
     def __init__(self, raw_data):
-        self.data = raw_data.decode()
+        self.data = raw_data.decode() + '\r\n'
 
     def get(self, name):
         try:

@@ -35,6 +35,9 @@ class HttpReader:
             else:
                 break
 
+        # Chunked encoding is terminated by a final newline
+        self.reader.read_bytes(len(NEWLINE))
+
     def _read_normal(self):
         content_length_str = self.headers.get('Content-Length')
 

@@ -6,7 +6,7 @@ from HttpReader import HttpReader
 from utils import send_all, contains_bad_word, BAD_URL_REDIRECT, \
     BAD_CONTENT_REDIRECT
 
-MAX_CONNECTION_COUNT = 5
+MAX_CONNECTION_COUNT = 300
 
 
 class Proxy:
@@ -41,13 +41,13 @@ class Proxy:
         self.serversocket.bind((self.host, self.port))
         self.serversocket.listen(MAX_CONNECTION_COUNT)
 
+        print('Proxy listening on ' + self.get_proxy_url())
+
         try:
             while True:
                 (clientsocket, address) = self.serversocket.accept()
                 Proxy.write_response_async(clientsocket)
-        except ConnectionAbortedError:
-            pass
-        except OSError:
+        except:
             pass
 
     @staticmethod
@@ -61,7 +61,7 @@ class Proxy:
         request = HttpReader(BufferedReader(clientsocket))
         request.read()
 
-        if contains_bad_word(request.raw_content):
+        if contains_bad_word(request.raw_content) and not contains_bad_word(request.headers.get('Referer')):
             send_all(clientsocket, BAD_URL_REDIRECT)
         else:
             # Remove the host from the requested url
@@ -89,3 +89,8 @@ class Proxy:
 
         # Close proxy client connection
         clientsocket.close()
+
+
+if __name__ == '__main__':
+    proxy = Proxy()
+    proxy.start()

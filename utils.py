@@ -14,14 +14,22 @@ BAD_CONTENT_REDIRECT = BAD_CONTENT_REDIRECT.replace(b'\n', b'\r\n')
 BANNED_WORDS = [
     'SpongeBob',
     'Britney Spears',
+    'Britney+Spears',
+    'Britney%20Spears',
     'Paris Hilton',
-    'Norrköping'
+    'Paris+Hilton',
+    'Paris%20Hilton',
+    'Norrköping',
+    'Norrk%C3%B6ping'
 ]
 
 
 def contains_bad_word(content_bytes):
     try:
-        content = content_bytes.decode().lower()
+        if isinstance(content_bytes, bytes):
+            content = content_bytes.decode().lower()
+        else:
+            content = content_bytes.lower()
     except:
         return False
 
