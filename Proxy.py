@@ -3,7 +3,8 @@ import threading
 
 from BufferedReader import BufferedReader
 from HttpReader import HttpReader
-from utils import send_all
+from utils import send_all, contains_bad_word, BAD_URL_REDIRECT, \
+    BAD_CONTENT_REDIRECT
 
 MAX_CONNECTION_COUNT = 5
 
@@ -60,23 +61,31 @@ class Proxy:
         request = HttpReader(BufferedReader(clientsocket))
         request.read()
 
-        # Remove the host from the requested url
-        hostname = request.headers.get('Host')
-        request_content = request.content
-        request_content = request_content.replace('http://' + hostname, '', 1)
+        if contains_bad_word(request.raw_content):
+            send_all(clientsocket, BAD_URL_REDIRECT)
+        else:
+            # Remove the host from the requested url
+            hostname = request.headers.get('Host')
+            request_content = request.content
+            request_content = request_content.replace('http://' + hostname, '', 1)
 
-        # Connect to the actual web server and send the request
-        websocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        websocket.connect((hostname, 80))
-        send_all(websocket, bytes(request_content, 'UTF-8'))
+            # Connect to the actual web server and send the request
+            websocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            websocket.connect((hostname, 80))
+            send_all(websocket, bytes(request_content, 'UTF-8'))
 
-        # Read response from the web server
-        response = HttpReader(BufferedReader(websocket))
-        response.read()
+            # Read response from the web server
+            response = HttpReader(BufferedReader(websocket))
+            response.read()
 
-        # Forward the response to the proxy client
-        send_all(clientsocket, response.raw_content)
+            if contains_bad_word(response.raw_content):
+                send_all(clientsocket, BAD_CONTENT_REDIRECT)
+            else:
+                # Forward the response to the proxy client
+                send_all(clientsocket, response.raw_content)
 
-        # Close all connections
-        websocket.close()
+            # Close web server connection
+            websocket.close()
+
+        # Close proxy client connection
         clientsocket.close()
