@@ -1,24 +1,30 @@
 import socket
 import threading
 
+import sys
+
 from BufferedReader import BufferedReader
 from HttpReader import HttpReader
-from utils import send_all, contains_bad_word, BAD_URL_REDIRECT, \
-    BAD_CONTENT_REDIRECT
+from utils import send_all, contains_bad_word, BAD_URL_REDIRECT, BAD_CONTENT_REDIRECT
 
 MAX_CONNECTION_COUNT = 300
+DEFAULT_PORT = 1337
 
 
 class Proxy:
-    def __init__(self):
+    def __init__(self, port):
         self.host = '127.0.0.1'
-        self.port = 1337
+        self.port = port
         self.serversocket = None
 
     def get_proxy_url(self):
         return 'http://' + self.host + ':' + str(self.port)
 
     def get_proxies(self):
+        """
+        Used to setup proxy for automatic testing
+        :return: A map between protocols and their respective proxy server
+        """
         return {
             'http': self.get_proxy_url()
         }
@@ -27,7 +33,6 @@ class Proxy:
         threading.Thread(target=self.runner).start()
 
     def stop(self):
-        # self.serversocket.shutdown(socket.SHUT_RDWR)
         self.serversocket.close()
 
     def runner(self):
@@ -52,6 +57,11 @@ class Proxy:
 
     @staticmethod
     def write_response_async(clientsocket):
+        """
+        Starts a new thread to handle the request, in order to increase performance.
+        :param clientsocket: The socket connecting the proxy client with our proxy server
+        """
+
         threading.Thread(target=Proxy.write_response,
                          args={clientsocket}).start()
 
@@ -62,9 +72,10 @@ class Proxy:
         request.read()
 
         if contains_bad_word(request.raw_content) and not contains_bad_word(request.headers.get('Referer')):
+            # Filter bad urls but do not put us in an endless redirection loop ^
             send_all(clientsocket, BAD_URL_REDIRECT)
         else:
-            # Remove the host from the requested url
+            # Remove the host from the requested url to ensure that all web servers can handle the request
             hostname = request.headers.get('Host')
             request_content = request.content
             request_content = request_content.replace('http://' + hostname, '', 1)
@@ -79,6 +90,7 @@ class Proxy:
             response.read()
 
             if contains_bad_word(response.raw_content):
+                # Redirect to the error page if trying to access bad content
                 send_all(clientsocket, BAD_CONTENT_REDIRECT)
             else:
                 # Forward the response to the proxy client
@@ -92,5 +104,9 @@ class Proxy:
 
 
 if __name__ == '__main__':
-    proxy = Proxy()
+    port = DEFAULT_PORT
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+
+    proxy = Proxy(port)
     proxy.start()

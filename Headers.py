@@ -1,8 +1,16 @@
 class Headers:
+    """
+    Helper used to extract header values from their string representation
+    """
+
     def __init__(self, raw_data):
         self.data = raw_data.decode() + '\r\n'
 
     def get(self, name):
+        """
+        Returns the value of the header with the given name, or an empty string if not found
+        """
+
         try:
             content = self.data.lower()
             name = name.lower()
@@ -17,4 +25,9 @@ class Headers:
             return ''
 
     def get_token(self, name):
+        """
+        Returns the value of the header with the given name, but in a format suitable for comparing it with a constant
+        :return: The lower characters of the header value
+        """
+
         return self.get(name).lower()
